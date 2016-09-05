@@ -1,0 +1,23 @@
+{
+  "intents": [
+    {
+      "intent": "OneshotClaimsIntent",
+      "slots": [
+        {
+          "name": "Relationship",
+          "type": "LIST_OF_RELATIONSHIPS"
+        },
+        {
+          "name": "Item",
+          "type": "AMAZON.LITERAL"
+        }
+      ]
+    },
+    {
+      "intent": "AMAZON.StopIntent"
+    },
+    {
+      "intent": "AMAZON.CancelIntent"
+    }
+  ]
+}
