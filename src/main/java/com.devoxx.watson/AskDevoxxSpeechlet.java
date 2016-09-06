@@ -300,8 +300,8 @@ public class AskDevoxxSpeechlet implements Speechlet {
    */
   private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject) throws JSONException { //, ParseException {
     InquiryResponseInfo inquiryResponseInfo = new InquiryResponseInfo();
-    JSONObject responseTextJson = (JSONObject) inquiryResponseObject.get("responseText");
-    inquiryResponseInfo.setResponseText(responseTextJson.toString());
+    String responseText = (String) inquiryResponseObject.get("responseText");
+    inquiryResponseInfo.setResponseText(responseText);
     return inquiryResponseInfo;
   }
 
