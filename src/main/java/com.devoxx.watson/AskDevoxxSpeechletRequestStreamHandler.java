@@ -28,7 +28,7 @@ import com.amazon.speech.speechlet.lambda.SpeechletRequestStreamHandler;
  * this project using the {@code lambda-compile} Ant task and upload the resulting zip file to power
  * your function.
  */
-public class ConceptMapSpeechletRequestStreamHandler extends SpeechletRequestStreamHandler {
+public class AskDevoxxSpeechletRequestStreamHandler extends SpeechletRequestStreamHandler {
 
     private static final Set<String> supportedApplicationIds;
 
@@ -41,12 +41,12 @@ public class ConceptMapSpeechletRequestStreamHandler extends SpeechletRequestStr
         supportedApplicationIds.add("amzn1.ask.skill.bbd0e942-d819-4137-9c1d-714d11afc8bc");
     }
 
-    public ConceptMapSpeechletRequestStreamHandler() {
-        super(new ConceptMapSpeechlet(), supportedApplicationIds);
+    public AskDevoxxSpeechletRequestStreamHandler() {
+        super(new AskDevoxxSpeechlet(), supportedApplicationIds);
     }
 
-    public ConceptMapSpeechletRequestStreamHandler(Speechlet speechlet,
-            Set<String> supportedApplicationIds) {
+    public AskDevoxxSpeechletRequestStreamHandler(Speechlet speechlet,
+                                                  Set<String> supportedApplicationIds) {
         super(speechlet, supportedApplicationIds);
     }
 

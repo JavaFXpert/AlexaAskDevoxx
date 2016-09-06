@@ -1,15 +1,11 @@
 {
   "intents": [
     {
-      "intent": "OneshotClaimsIntent",
+      "intent": "OneShotCommandIntent",
       "slots": [
         {
-          "name": "Relationship",
-          "type": "LIST_OF_RELATIONSHIPS"
-        },
-        {
-          "name": "Item",
-          "type": "AMAZON.LITERAL"
+          "name": "Command",
+          "type": "LITERAL"
         }
       ]
     },

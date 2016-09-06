@@ -19,27 +19,20 @@ import com.amazon.speech.slu.Intent;
 import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.*;
 import com.amazon.speech.ui.*;
-import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;
 import com.amazonaws.util.json.JSONTokener;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
-//import java.net.URLEncoder;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.text.ParseException;
-
-//import javafxpert.conceptmap.com.devoxx.watson.ClaimsInfo;
-//import javafxpert.conceptmap.com.devoxx.watson.ItemInfo;
 
 
 /**
@@ -82,13 +75,13 @@ import java.text.ParseException;
  * Alexa: "Saturday June 20th in Seattle the first high tide will be around 7:18 am, and will peak
  * at ..."
  */
-public class ConceptMapSpeechlet implements Speechlet {
-  private static final Logger log = LoggerFactory.getLogger(ConceptMapSpeechlet.class);
+public class AskDevoxxSpeechlet implements Speechlet {
+  private static final Logger log = LoggerFactory.getLogger(AskDevoxxSpeechlet.class);
 
-  private static final String SLOT_RELATIONSHIP = "Relationship";
-  private static final String SLOT_ITEM = "Item";
-  private static final String TRAVERSAL_ENDPOINT = "https://conceptmap.cfapps.io/traversal";
-  private static final String ID_LOCATOR_ENDPOINT = "https://conceptmap.cfapps.io/idlocator";
+  private static final String SLOT_COMMAND = "Command";
+  private static final String INQUIRY_ENDPOINT = "https://askdevoxx.cfapps.io/inquiry";
+
+  private static final String devoxxImageUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2EJZCArvYTVTThseT3TdN25cmPRanxrM2RDAgOI1GT0GEQLMVLA";
 
   @Override
   public void onSessionStarted(final SessionStartedRequest request, final Session session)
@@ -117,21 +110,17 @@ public class ConceptMapSpeechlet implements Speechlet {
       Intent intent = request.getIntent();
       String intentName = intent.getName();
 
-      Slot itemSlot = intent.getSlot(SLOT_ITEM);
-      Slot relSlot = intent.getSlot(SLOT_RELATIONSHIP);
-      if (itemSlot != null && itemSlot.getValue() != null) {
-          log.info("I received an Item request: " + itemSlot.getValue());
-      }
-      else if (relSlot != null && relSlot.getValue() != null) {
-          log.info("I received a Relationship request: " + relSlot.getValue());
+      Slot commandSlot = intent.getSlot(SLOT_COMMAND);
+      if (commandSlot != null && commandSlot.getValue() != null) {
+          log.info("I received a Command request: " + commandSlot.getValue());
       }
       else {
           log.info("I'm not sure if I received a request");
       }
 
 
-      if ("OneshotClaimsIntent".equals(intentName)) {
-          return handleOneshotTideRequest(intent, session);
+      if ("OneShotCommandIntent".equals(intentName)) {
+          return handleOneShotCommandRequest(intent, session);
       }
 
       /*
@@ -166,14 +155,14 @@ public class ConceptMapSpeechlet implements Speechlet {
   private SpeechletResponse getWelcomeResponse() {
       String whichItemRelPrompt = "Which item and relationship would you like claims for?";
       String speechOutput = "<speak>"
-          + "Welcome to Concept Map. "
+          + "Welcome to Ask Devoxx. "
           + whichItemRelPrompt
           + "</speak>";
       String repromptText =
           "I can lead you through providing an item and "
               + "relationship to get claims, "
-              + "or you can simply open Concept Map and ask a question like, "
-              + "what teams has Lionel Messi played on. ";
+              + "or you can simply say Ask Devoxx and ask a question like, "
+              + "what is Devoxx U.S. ";
 
       return newAskResponse(speechOutput, true, repromptText, false);
   }
@@ -183,18 +172,16 @@ public class ConceptMapSpeechlet implements Speechlet {
    * Pooler and get tide information for Seattle on Saturday'. If there is an error in a slot,
    * this will guide the user to the dialog approach.
    */
-  private SpeechletResponse handleOneshotTideRequest(final Intent intent, final Session session) {
-      Slot itemSlot;
-      Slot relSlot;
+  private SpeechletResponse handleOneShotCommandRequest(final Intent intent, final Session session) {
+      Slot commandSlot;
       String speechOutput;
 
       try {
-          itemSlot = intent.getSlot(SLOT_ITEM);
-          relSlot = intent.getSlot(SLOT_RELATIONSHIP);
+          commandSlot = intent.getSlot(SLOT_COMMAND);
       } catch (Exception e) {
           // invalid city. move to the dialog
           speechOutput =
-                  "I need both an Item and a Relationship";
+                  "I need a Command";
 
           // repromptText is the same as the speechOutput
           return newAskResponse(speechOutput, speechOutput);
@@ -203,10 +190,10 @@ public class ConceptMapSpeechlet implements Speechlet {
 
       // all slots filled, either from the user or by default values. Move to final request
       speechOutput =
-          "Item is " + itemSlot.getValue() + "and relationship is " + relSlot.getValue();
+          "Command is " + commandSlot.getValue();
 
-    //return makeClaimsRequest("Q615", "P54");
-    return makeClaimsRequest(itemSlot.getValue(), relSlot.getValue());
+    //return makeInquiryRequest("What is Devoxx US?");
+    return makeInquiryRequest(commandSlot.getValue());
   }
 
   /**
@@ -215,90 +202,90 @@ public class ConceptMapSpeechlet implements Speechlet {
    * @throws IOException
    */
   //private SpeechletResponse makeClaimsRequest(String itemId, String propId) {
-  private SpeechletResponse makeClaimsRequest(String itemValue, String relationshipValue) {
-    String properCasedItemValue = WordUtils.capitalize(itemValue);
+  private SpeechletResponse makeInquiryRequest(String commandValue) {
+    System.out.println("commandValue: " + commandValue);
     String speechOutput = "";
     Image image = new Image();
 
-    // Translate requested item and relationship to Q and P numbers
-    //String itemId = "Q887401";
-    String propId = "P54";
-    String itemId = locateItemId(properCasedItemValue);
-    if (itemId != null && itemId.length() > 0) {
+    if (commandValue != null && commandValue.length() > 0) {
+      String escapedInquiry = commandValue;
 
-      String queryString =
-          String.format("?id=%s&direction=f&prop=%s&depth=1", itemId, propId);
-
+      try {
+        escapedInquiry = URLEncoder.encode(commandValue, "UTF-8");
+      }
+      catch (UnsupportedEncodingException uee) {}
+      String inquiryString =
+          String.format("?text=%s", escapedInquiry);
 
       InputStreamReader inputStream = null;
       BufferedReader bufferedReader = null;
       StringBuilder builder = new StringBuilder();
       try {
         String line;
-        URL url = new URL(TRAVERSAL_ENDPOINT + queryString);
+        URL url = new URL(INQUIRY_ENDPOINT + inquiryString);
+
+        System.out.println("url: " + url);
+
         inputStream = new InputStreamReader(url.openStream(), Charset.forName("US-ASCII"));
         bufferedReader = new BufferedReader(inputStream);
         while ((line = bufferedReader.readLine()) != null) {
           builder.append(line);
         }
       } catch (IOException e) {
+        e.printStackTrace();
         // reset builder to a blank string
         builder.setLength(0);
       } finally {
         IOUtils.closeQuietly(inputStream);
         IOUtils.closeQuietly(bufferedReader);
 
-        log.info("builder: " + builder);
+        //log.info("builder: " + builder);
+        System.out.println("builder: " + builder);
       }
 
       if (builder.length() == 0) {
         speechOutput =
-            "Sorry, the Concept Map claims service is experiencing a problem. "
+            "Sorry, the Ask Devoxx inquiry service is experiencing a problem. "
                 + "Please try again later.";
       } else {
         try {
-          JSONObject claimsResponseObject = new JSONObject(new JSONTokener(builder.toString()));
+          JSONObject inquiryResponseObject = new JSONObject(new JSONTokener(builder.toString()));
 
-          if (claimsResponseObject != null) {
-            ClaimsInfo claimsInfo = createClaimsInfo(claimsResponseObject, itemId);
+          if (inquiryResponseObject != null) {
+            InquiryResponseInfo inquiryResponseInfo = createInquiryResponseInfo(inquiryResponseObject);
 
-            log.info("claimsInfo: " + claimsInfo);
+            log.info("inquiryResponseInfo: " + inquiryResponseInfo);
 
-            speechOutput = "Item " + properCasedItemValue + " not found";
-
-            if (claimsInfo.getItemLabels().size() > 0) {
+            String inquiryResponseText = inquiryResponseInfo.getResponseText();
+            if (inquiryResponseText != null && inquiryResponseText.length() > 0) {
               speechOutput = new StringBuilder()
-                  .append(properCasedItemValue)
-                  //.append(claimsInfo.getItemLabels().get(0))
-                  .append(" has been a member of ")
-                  .append(relationshipValue)
+                  .append(inquiryResponseText)
                   .append(" \n")
-                  .append(claimsInfo.toItemLabelsSpeech())
+                  .toString();
+            }
+            else {
+              speechOutput = new StringBuilder()
+                  .append("Unable to respond to your inquiry")
+                  .append(" \n")
                   .toString();
             }
 
-            // Get the picture redirect
-            URL url = new URL(claimsInfo.getPictureUrl());
-            HttpURLConnection.setFollowRedirects(false);
-            final HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            //con.setInstanceFollowRedirects(false);
-            final int responseCode = con.getResponseCode();
-            final String redirectLocation = con.getHeaderField("Location");
-            image.setSmallImageUrl(redirectLocation);
+            // Get the picture
+            image.setSmallImageUrl(devoxxImageUrl);
           }
           //} catch (JSONException | ParseException e) {
-        } catch (JSONException | IOException e) {
+        } catch (JSONException e) {
           log.error("Exception occoured while parsing service response.", e);
         }
       }
     }
     else {
-      speechOutput = "Couldn't locate an Item ID for item " + properCasedItemValue;
+      speechOutput = "Invalid inquiry; " + commandValue;
     }
 
     // Create the Simple card content.
     StandardCard card = new StandardCard();
-    card.setTitle(properCasedItemValue);
+    card.setTitle(commandValue);
     card.setText(speechOutput);
     card.setImage(image);
     // Create the plain text output
@@ -311,82 +298,11 @@ public class ConceptMapSpeechlet implements Speechlet {
   /**
    * Create an object that contains claims info
    */
-  private ClaimsInfo createClaimsInfo(JSONObject responseObject, String itemId) throws JSONException { //, ParseException {
-    ClaimsInfo claimsInfo = new ClaimsInfo();
-    JSONArray items = (JSONArray) responseObject.get("item");
-
-    for (int i = 0; i < items.length(); i++) {
-      JSONObject itemInfoJson = (JSONObject) items.get(i);
-      ItemInfo itemInfo = new ItemInfo((String)itemInfoJson.get("id"),
-          (String)itemInfoJson.get("label"),
-          (String)itemInfoJson.get("picture"));
-      if (itemInfo.getId().equals(itemId)) {
-        claimsInfo.setPictureUrl(itemInfo.getPicture());
-      }
-      else {
-        claimsInfo.getItemLabels().add(itemInfo.getLabel());
-      }
-    }
-    return claimsInfo;
-  }
-
-  /**
-   * Call a ConceptMap endpoint to get the Item ID for a given article name
-   *
-   * @throws IOException
-   */
-  private String locateItemId(String itemValue) {
-    String itemId = "";
-
-    String queryString =
-        String.format("?name=%s&lang=en", itemValue);
-    queryString = queryString.replaceAll(" ", "%20");
-    log.info("queryString: " + queryString);
-
-    InputStreamReader inputStream = null;
-    BufferedReader bufferedReader = null;
-    StringBuilder builder = new StringBuilder();
-    try {
-      String line;
-      URL url = new URL(ID_LOCATOR_ENDPOINT + queryString);
-
-      log.info("locateItemId url: " + url);
-
-      inputStream = new InputStreamReader(url.openStream(), Charset.forName("US-ASCII"));
-      bufferedReader = new BufferedReader(inputStream);
-      while ((line = bufferedReader.readLine()) != null) {
-        builder.append(line);
-      }
-    } catch (IOException e) {
-      log.info("IOException e: " + e);
-      // reset builder to a blank string
-      builder.setLength(0);
-    } finally {
-      IOUtils.closeQuietly(inputStream);
-      IOUtils.closeQuietly(bufferedReader);
-
-      log.info("locateItemId builder: " + builder);
-    }
-
-    if (builder.length() > 0) {
-      try {
-        JSONObject idResponseObject = new JSONObject(new JSONTokener(builder.toString()));
-
-        if (idResponseObject != null) {
-          itemId = (String) idResponseObject.get("itemId");
-
-          log.info("locateItemId itemId: " + itemId);
-
-          if (itemId == null) {
-            itemId = "";
-          }
-        }
-      } catch (JSONException e) {
-        log.error("Exception occoured while parsing service response.", e);
-      }
-    }
-
-    return itemId;
+  private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject) throws JSONException { //, ParseException {
+    InquiryResponseInfo inquiryResponseInfo = new InquiryResponseInfo();
+    JSONObject responseTextJson = (JSONObject) inquiryResponseObject.get("responseText");
+    inquiryResponseInfo.setResponseText(responseTextJson.toString());
+    return inquiryResponseInfo;
   }
 
 
@@ -440,6 +356,4 @@ public class ConceptMapSpeechlet implements Speechlet {
       reprompt.setOutputSpeech(repromptOutputSpeech);
       return SpeechletResponse.newAskResponse(outputSpeech, reprompt);
   }
-
-
 }

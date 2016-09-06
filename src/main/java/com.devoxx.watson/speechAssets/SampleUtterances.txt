@@ -1,1 +1,1 @@
-OneshotClaimsIntent get {Relationship} for {Lionel Messi|Item}
+OneShotCommandIntent {What is Java | Command}
