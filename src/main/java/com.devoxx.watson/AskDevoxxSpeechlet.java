@@ -27,10 +27,8 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -200,51 +198,59 @@ public class AskDevoxxSpeechlet implements Speechlet {
    *
    * @throws IOException
    */
-  //private SpeechletResponse makeClaimsRequest(String itemId, String propId) {
   private SpeechletResponse makeInquiryRequest(String commandValue) {
     System.out.println("commandValue: " + commandValue);
     String speechOutput = "";
     Image image = new Image();
 
     if (commandValue != null && commandValue.length() > 0) {
-      String escapedInquiry = commandValue;
-
-      try {
-        escapedInquiry = URLEncoder.encode(commandValue, "UTF-8");
-      }
-      catch (UnsupportedEncodingException uee) {}
-
-      String inquiryString =
-          String.format("?text=%s", escapedInquiry);
-
-      // Append a question mark to the end of the inquiry if not already present
-      if (inquiryString.charAt(escapedInquiry.length() - 1) != '?') {
-        inquiryString += "?";
-      }
+      String inquiryJsonStr = generateInitialJsonStr(commandValue);
 
       InputStreamReader inputStream = null;
       BufferedReader bufferedReader = null;
       StringBuilder builder = new StringBuilder();
       try {
         String line;
-        URL url = new URL(INQUIRY_ENDPOINT + inquiryString);
+        URL url = new URL(INQUIRY_ENDPOINT);
 
         System.out.println("url: " + url);
+        System.out.println("inquiryJsonStr: " + inquiryJsonStr);
 
-        inputStream = new InputStreamReader(url.openStream(), Charset.forName("US-ASCII"));
-        bufferedReader = new BufferedReader(inputStream);
-        while ((line = bufferedReader.readLine()) != null) {
-          builder.append(line);
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setDoOutput(true);
+        con.setDoInput(true);
+        con.setRequestProperty("Content-Type", "application/json; charset=utf8");
+        con.setRequestProperty("Accept", "application/json");
+        con.setRequestProperty("Method", "POST");
+
+        OutputStream os = con.getOutputStream();
+        os.write(inquiryJsonStr.getBytes("UTF-8"));
+        os.close();
+
+        inputStream = new InputStreamReader(con.getInputStream(),"utf-8");
+
+        StringBuilder sb = new StringBuilder();
+        int httpResult = con.getResponseCode();
+        if (httpResult == HttpURLConnection.HTTP_OK) {
+          bufferedReader = new BufferedReader(inputStream);
+          while ((line = bufferedReader.readLine()) != null) {
+            builder.append(line);
+          }
+
+        }else{
+          System.out.println("con.getResponseCode(): " + con.getResponseCode());
+          System.out.println("con.getResponseMessage(): " + con.getResponseMessage());
         }
-      } catch (IOException e) {
-        e.printStackTrace();
+      }
+      catch (IOException ioe) {
+        ioe.printStackTrace();
         // reset builder to a blank string
         builder.setLength(0);
-      } finally {
+      }
+      finally {
         IOUtils.closeQuietly(inputStream);
         IOUtils.closeQuietly(bufferedReader);
 
-        //log.info("builder: " + builder);
         System.out.println("builder: " + builder);
       }
 
@@ -298,7 +304,29 @@ public class AskDevoxxSpeechlet implements Speechlet {
   }
 
   /**
-   * Create an object that contains claims info
+   * Given the text of an inquiry, generates a JSON string for the POST in the first inquiry of a conversation
+   * @param text
+   * @return
+   * @throws JSONException
+   */
+  public String generateInitialJsonStr (String text) {
+    // Append a question mark to the end of the inquiry if not already present
+    if (text.charAt(text.length() - 1) != '?') {
+      text += "?";
+    }
+
+    JSONObject reqParams = new JSONObject();
+    try {
+      reqParams.put("text", text);
+    }
+    catch (JSONException je) {
+      je.printStackTrace();
+    }
+    return reqParams.toString();
+  }
+
+  /**
+   * Create an object that contains inquiry response and resource info
    */
   private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject) throws JSONException { //, ParseException {
     InquiryResponseInfo inquiryResponseInfo = new InquiryResponseInfo();
