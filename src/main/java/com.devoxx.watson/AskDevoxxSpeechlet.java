@@ -19,6 +19,7 @@ import com.amazon.speech.slu.Intent;
 import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.*;
 import com.amazon.speech.ui.*;
+import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;
 import com.amazonaws.util.json.JSONTokener;
@@ -153,15 +154,13 @@ public class AskDevoxxSpeechlet implements Speechlet {
 
 
   private SpeechletResponse getWelcomeResponse() {
-      String whichItemRelPrompt = "Which item and relationship would you like claims for?";
+      String whatIsYourQuestionPrompt = "What is your question?";
       String speechOutput = "<speak>"
           + "Welcome to Ask Devoxx. "
-          + whichItemRelPrompt
+          + whatIsYourQuestionPrompt
           + "</speak>";
       String repromptText =
-          "I can lead you through providing an item and "
-              + "relationship to get claims, "
-              + "or you can simply say Ask Devoxx and ask a question like, "
+          "You can simply say Ask Devoxx and ask a question like, "
               + "what is Devoxx U.S. ";
 
       return newAskResponse(speechOutput, true, repromptText, false);
@@ -214,8 +213,14 @@ public class AskDevoxxSpeechlet implements Speechlet {
         escapedInquiry = URLEncoder.encode(commandValue, "UTF-8");
       }
       catch (UnsupportedEncodingException uee) {}
+
       String inquiryString =
           String.format("?text=%s", escapedInquiry);
+
+      // Append a question mark to the end of the inquiry if not already present
+      if (inquiryString.charAt(escapedInquiry.length() - 1) != '?') {
+        inquiryString += "?";
+      }
 
       InputStreamReader inputStream = null;
       BufferedReader bufferedReader = null;
@@ -264,10 +269,7 @@ public class AskDevoxxSpeechlet implements Speechlet {
                   .toString();
             }
             else {
-              speechOutput = new StringBuilder()
-                  .append("Unable to respond to your inquiry")
-                  .append(" \n")
-                  .toString();
+              speechOutput = "Unable to respond to your inquiry\n";
             }
 
             // Get the picture
@@ -300,7 +302,22 @@ public class AskDevoxxSpeechlet implements Speechlet {
    */
   private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject) throws JSONException { //, ParseException {
     InquiryResponseInfo inquiryResponseInfo = new InquiryResponseInfo();
-    String responseText = (String) inquiryResponseObject.get("responseText");
+    String responseText = inquiryResponseObject.getString("responseText");
+
+    JSONArray resourcesJsonArray = (JSONArray)inquiryResponseObject.get("resources");
+
+    // TODO: Put these in a loop when requirements are solid
+    if (resourcesJsonArray.length() > 0 ) {
+      JSONObject firstResourceJson = (JSONObject)resourcesJsonArray.get(0);
+      String firstResourceBodyText = firstResourceJson.getString("body");
+      responseText += "\n" + firstResourceBodyText;
+    }
+    if (resourcesJsonArray.length() > 1 ) {
+      JSONObject secondResourceJson = (JSONObject)resourcesJsonArray.get(1);
+      String secondResourceBodyText = secondResourceJson.getString("body");
+      responseText += "\n" + secondResourceBodyText;
+    }
+
     inquiryResponseInfo.setResponseText(responseText);
     return inquiryResponseInfo;
   }
