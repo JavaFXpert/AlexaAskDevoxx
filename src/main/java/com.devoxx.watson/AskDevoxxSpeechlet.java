@@ -328,7 +328,28 @@ public class AskDevoxxSpeechlet implements Speechlet {
   /**
    * Create an object that contains inquiry response and resource info
    */
-  private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject) throws JSONException { //, ParseException {
+  private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject) throws JSONException {
+    // First, retrieve and store the Conversation context into the session
+    JSONObject contextJsonObject = inquiryResponseObject.getJSONObject("context");
+
+    if (contextJsonObject != null) {
+      String conversationId = contextJsonObject.getString("conversation_id");
+      System.out.println("conversationId: " + conversationId);
+
+      JSONObject systemJsonObject = contextJsonObject.getJSONObject("system");
+      if (systemJsonObject != null) {
+        String dialogStack = systemJsonObject.getString("dialog_stack");
+        System.out.println("dialogStack: " + dialogStack);
+
+        String dialogTurnCounter = systemJsonObject.getString("dialog_turn_counter");
+        System.out.println("dialogTurnCounter: " + dialogTurnCounter);
+
+        String dialogRequestCounter = systemJsonObject.getString("dialog_request_counter");
+        System.out.println("dialogRequestCounter: " + dialogRequestCounter);
+      }
+    }
+    // End retrieve and storing the Conversation context into the session
+
     InquiryResponseInfo inquiryResponseInfo = new InquiryResponseInfo();
     String responseText = "Sorry.  I'm not sure how to respond";
 
