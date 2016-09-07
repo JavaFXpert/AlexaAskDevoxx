@@ -330,15 +330,20 @@ public class AskDevoxxSpeechlet implements Speechlet {
    */
   private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject) throws JSONException { //, ParseException {
     InquiryResponseInfo inquiryResponseInfo = new InquiryResponseInfo();
-    String responseText = inquiryResponseObject.getString("responseText");
+    String responseText = "Sorry.  I'm not sure how to respond";
 
-    JSONArray resourcesJsonArray = (JSONArray)inquiryResponseObject.get("resources");
+    JSONArray resourcesJsonArray = (JSONArray) inquiryResponseObject.get("resources");
+
+    if (resourcesJsonArray.length() == 0) {
+      // If there are no resources returned, then say the response from the Conversation
+      responseText = inquiryResponseObject.getString("responseText");
+    }
 
     // TODO: Put these in a loop when requirements are solid
     if (resourcesJsonArray.length() > 0 ) {
       JSONObject firstResourceJson = (JSONObject)resourcesJsonArray.get(0);
       String firstResourceBodyText = firstResourceJson.getString("body");
-      responseText += "\n" + firstResourceBodyText;
+      responseText = firstResourceBodyText;
     }
     if (resourcesJsonArray.length() > 1 ) {
       JSONObject secondResourceJson = (JSONObject)resourcesJsonArray.get(1);
