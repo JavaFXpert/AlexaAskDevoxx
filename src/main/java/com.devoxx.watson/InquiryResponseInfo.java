@@ -23,8 +23,6 @@ import java.util.List;
  * Represents the info in an item
  */
 public class InquiryResponseInfo {
-  private ConversationContextInfo context;
-
   private String inquiryText;
 
   private String responseText;
@@ -33,19 +31,10 @@ public class InquiryResponseInfo {
 
   public InquiryResponseInfo() {}
 
-  public InquiryResponseInfo(ConversationContextInfo context, String inquiryText, String responseText, List<DocumentInfo> resources) {
-    this.context = context;
+  public InquiryResponseInfo(String inquiryText, String responseText, List<DocumentInfo> resources) {
     this.inquiryText = inquiryText;
     this.responseText = responseText;
     this.resources = resources;
-  }
-
-  public ConversationContextInfo getContext() {
-    return context;
-  }
-
-  public void setContext(ConversationContextInfo context) {
-    this.context = context;
   }
 
   public String getInquiryText() {
@@ -75,8 +64,7 @@ public class InquiryResponseInfo {
   @Override
   public String toString() {
     return "InquiryResponseInfo{" +
-        "context=" + context +
-        ", inquiryText='" + inquiryText + '\'' +
+        "inquiryText='" + inquiryText + '\'' +
         ", responseText='" + responseText + '\'' +
         ", resources=" + resources +
         '}';

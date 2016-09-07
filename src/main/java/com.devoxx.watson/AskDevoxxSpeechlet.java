@@ -77,6 +77,11 @@ import java.nio.charset.Charset;
 public class AskDevoxxSpeechlet implements Speechlet {
   private static final Logger log = LoggerFactory.getLogger(AskDevoxxSpeechlet.class);
 
+  private static final String SESSION_CONVERSATION_ID = "conversation_id";
+  private static final String SESSION_DIALOG_STACK = "dialog_stack";
+  private static final String SESSION_DIALOG_TURN_COUNTER = "dialog_turn_counter";
+  private static final String SESSION_DIALOG_REQUEST_COUNTER = "dialog_request_counter";
+
   private static final String SLOT_COMMAND = "Command";
   private static final String INQUIRY_ENDPOINT = "https://askdevoxx.cfapps.io/inquiry";
 
@@ -190,7 +195,7 @@ public class AskDevoxxSpeechlet implements Speechlet {
           "Command is " + commandSlot.getValue();
 
     //return makeInquiryRequest("What is Devoxx US?");
-    return makeInquiryRequest(commandSlot.getValue());
+    return makeInquiryRequest(commandSlot.getValue(), session);
   }
 
   /**
@@ -198,8 +203,33 @@ public class AskDevoxxSpeechlet implements Speechlet {
    *
    * @throws IOException
    */
-  private SpeechletResponse makeInquiryRequest(String commandValue) {
+  private SpeechletResponse makeInquiryRequest(String commandValue, Session session) {
     System.out.println("commandValue: " + commandValue);
+
+    String sessionConversationId = "";
+    if (session.getAttribute(SESSION_CONVERSATION_ID) != null) {
+      sessionConversationId = (String) session.getAttribute(SESSION_CONVERSATION_ID);
+    }
+    System.out.println("sessionConversationId: " + sessionConversationId);
+
+    String sessionDialogStack = "";
+    if (session.getAttribute(SESSION_DIALOG_STACK) != null) {
+      sessionDialogStack = (String) session.getAttribute(SESSION_DIALOG_STACK);
+    }
+    System.out.println("sessionDialogStack: " + sessionDialogStack);
+
+    String sessionDialogTurnCounter = "";
+    if (session.getAttribute(SESSION_DIALOG_TURN_COUNTER) != null) {
+      sessionDialogTurnCounter = (String) session.getAttribute(SESSION_DIALOG_TURN_COUNTER);
+    }
+    System.out.println("sessionDialogTurnCounter: " + sessionDialogTurnCounter);
+
+    String sessionDialogRequestCounter = "";
+    if (session.getAttribute(SESSION_DIALOG_REQUEST_COUNTER) != null) {
+      sessionDialogRequestCounter = (String) session.getAttribute(SESSION_DIALOG_REQUEST_COUNTER);
+    }
+    System.out.println("sessionDialogRequestCounter: " + sessionDialogRequestCounter);
+
     String speechOutput = "";
     Image image = new Image();
 
@@ -263,7 +293,7 @@ public class AskDevoxxSpeechlet implements Speechlet {
           JSONObject inquiryResponseObject = new JSONObject(new JSONTokener(builder.toString()));
 
           if (inquiryResponseObject != null) {
-            InquiryResponseInfo inquiryResponseInfo = createInquiryResponseInfo(inquiryResponseObject);
+            InquiryResponseInfo inquiryResponseInfo = createInquiryResponseInfo(inquiryResponseObject, session);
 
             log.info("inquiryResponseInfo: " + inquiryResponseInfo);
 
@@ -300,7 +330,11 @@ public class AskDevoxxSpeechlet implements Speechlet {
     PlainTextOutputSpeech outputSpeech = new PlainTextOutputSpeech();
     outputSpeech.setText(speechOutput);
 
-    return SpeechletResponse.newTellResponse(outputSpeech, card);
+
+    SpeechletResponse response = newAskResponse(speechOutput, speechOutput);
+    return response;
+
+    //return SpeechletResponse.newTellResponse(outputSpeech, card);
   }
 
   /**
@@ -328,24 +362,28 @@ public class AskDevoxxSpeechlet implements Speechlet {
   /**
    * Create an object that contains inquiry response and resource info
    */
-  private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject) throws JSONException {
+  private InquiryResponseInfo createInquiryResponseInfo(JSONObject inquiryResponseObject, Session session) throws JSONException {
     // First, retrieve and store the Conversation context into the session
     JSONObject contextJsonObject = inquiryResponseObject.getJSONObject("context");
 
     if (contextJsonObject != null) {
       String conversationId = contextJsonObject.getString("conversation_id");
-      System.out.println("conversationId: " + conversationId);
+      System.out.println("response conversationId: " + conversationId);
+      session.setAttribute(SESSION_CONVERSATION_ID, conversationId);
 
       JSONObject systemJsonObject = contextJsonObject.getJSONObject("system");
       if (systemJsonObject != null) {
         String dialogStack = systemJsonObject.getString("dialog_stack");
-        System.out.println("dialogStack: " + dialogStack);
+        System.out.println("response dialogStack: " + dialogStack);
+        session.setAttribute(SESSION_DIALOG_STACK, dialogStack);
 
         String dialogTurnCounter = systemJsonObject.getString("dialog_turn_counter");
-        System.out.println("dialogTurnCounter: " + dialogTurnCounter);
+        System.out.println("response dialogTurnCounter: " + dialogTurnCounter);
+        session.setAttribute(SESSION_DIALOG_TURN_COUNTER, dialogTurnCounter);
 
         String dialogRequestCounter = systemJsonObject.getString("dialog_request_counter");
-        System.out.println("dialogRequestCounter: " + dialogRequestCounter);
+        System.out.println("response dialogRequestCounter: " + dialogRequestCounter);
+        session.setAttribute(SESSION_DIALOG_REQUEST_COUNTER, dialogRequestCounter);
       }
     }
     // End retrieve and storing the Conversation context into the session
