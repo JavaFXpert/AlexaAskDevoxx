@@ -234,7 +234,7 @@ public class AskDevoxxSpeechlet implements Speechlet {
     Image image = new Image();
 
     if (commandValue != null && commandValue.length() > 0) {
-      String inquiryJsonStr = generateInitialJsonStr(commandValue);
+      String inquiryJsonStr = generateInitialJsonStr(commandValue, session);
 
       InputStreamReader inputStream = null;
       BufferedReader bufferedReader = null;
@@ -332,18 +332,19 @@ public class AskDevoxxSpeechlet implements Speechlet {
 
 
     SpeechletResponse response = newAskResponse(speechOutput, speechOutput);
+    response.setCard(card);
     return response;
 
     //return SpeechletResponse.newTellResponse(outputSpeech, card);
   }
 
   /**
-   * Given the text of an inquiry, generates a JSON string for the POST in the first inquiry of a conversation
+   * Given the text of an inquiry, generates a JSON string for the POST to the inquiry endpoint
    * @param text
    * @return
    * @throws JSONException
    */
-  public String generateInitialJsonStr (String text) {
+  public String generateInitialJsonStr (String text, Session session) {
     // Append a question mark to the end of the inquiry if not already present
     if (text.charAt(text.length() - 1) != '?') {
       text += "?";
@@ -352,6 +353,20 @@ public class AskDevoxxSpeechlet implements Speechlet {
     JSONObject reqParams = new JSONObject();
     try {
       reqParams.put("text", text);
+
+      if (session.getAttribute(SESSION_CONVERSATION_ID) != null) {
+        // Context exists in the session, so add it to the POST
+        JSONObject systemParams = new JSONObject();
+        systemParams.put(SESSION_DIALOG_STACK, session.getAttribute(SESSION_DIALOG_STACK));
+        systemParams.put(SESSION_DIALOG_TURN_COUNTER, session.getAttribute(SESSION_DIALOG_TURN_COUNTER));
+        systemParams.put(SESSION_DIALOG_REQUEST_COUNTER, session.getAttribute(SESSION_DIALOG_REQUEST_COUNTER));
+
+        JSONObject contextParams = new JSONObject();
+        contextParams.put(SESSION_CONVERSATION_ID, session.getAttribute(SESSION_CONVERSATION_ID));
+        contextParams.put("system", systemParams);
+
+        reqParams.put("context", contextParams);
+      }
     }
     catch (JSONException je) {
       je.printStackTrace();
