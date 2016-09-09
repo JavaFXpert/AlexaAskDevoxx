@@ -422,7 +422,7 @@ public class AskDevoxxSpeechlet implements Speechlet {
     if (resourcesJsonArray.length() > 1 ) {
       JSONObject secondResourceJson = (JSONObject)resourcesJsonArray.get(1);
       String secondResourceBodyText = secondResourceJson.getString("body");
-      responseText += "\n" + secondResourceBodyText;
+      responseText += "\n" + "Another answer is" + "\n" + secondResourceBodyText;
     }
 
     inquiryResponseInfo.setResponseText(responseText);

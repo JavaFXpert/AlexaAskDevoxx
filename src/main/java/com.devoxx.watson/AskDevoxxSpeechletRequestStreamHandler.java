@@ -39,6 +39,7 @@ public class AskDevoxxSpeechletRequestStreamHandler extends SpeechletRequestStre
          */
         supportedApplicationIds = new HashSet<String>();
         supportedApplicationIds.add("amzn1.ask.skill.bbd0e942-d819-4137-9c1d-714d11afc8bc");
+        supportedApplicationIds.add("amzn1.ask.skill.e48bc904-60c3-4737-9ed3-18c23f035f1c");
     }
 
     public AskDevoxxSpeechletRequestStreamHandler() {
