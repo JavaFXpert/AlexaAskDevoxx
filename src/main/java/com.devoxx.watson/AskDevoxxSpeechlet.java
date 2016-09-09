@@ -87,6 +87,7 @@ public class AskDevoxxSpeechlet implements Speechlet {
 
   private static final String devoxxImageUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2EJZCArvYTVTThseT3TdN25cmPRanxrM2RDAgOI1GT0GEQLMVLA";
 
+  private static final String goodbyeEmotican = "(^_^)/";
   @Override
   public void onSessionStarted(final SessionStartedRequest request, final Session session)
           throws SpeechletException {
@@ -326,16 +327,29 @@ public class AskDevoxxSpeechlet implements Speechlet {
     card.setTitle(commandValue);
     card.setText(speechOutput);
     card.setImage(image);
+
+    // Determine if the speech output contains an indicator that Alexa should disconnect from this service
+
+    boolean disconnect = false;
+    speechOutput = speechOutput.trim();
+    if (speechOutput.endsWith(goodbyeEmotican)) {
+      disconnect = true;
+      speechOutput = speechOutput.substring(0, speechOutput.lastIndexOf(goodbyeEmotican));
+    }
+
     // Create the plain text output
     PlainTextOutputSpeech outputSpeech = new PlainTextOutputSpeech();
     outputSpeech.setText(speechOutput);
 
-
-    SpeechletResponse response = newAskResponse(speechOutput, speechOutput);
+    SpeechletResponse response;
+    if (disconnect) {
+      response = SpeechletResponse.newTellResponse(outputSpeech);
+    }
+    else {
+      response = newAskResponse(speechOutput, speechOutput);
+    }
     response.setCard(card);
     return response;
-
-    //return SpeechletResponse.newTellResponse(outputSpeech, card);
   }
 
   /**
@@ -419,11 +433,12 @@ public class AskDevoxxSpeechlet implements Speechlet {
       String firstResourceBodyText = firstResourceJson.getString("body");
       responseText = firstResourceBodyText;
     }
+    /* TODO: After JavaOne, consider uncommenting this and saying the second answer.
     if (resourcesJsonArray.length() > 1 ) {
       JSONObject secondResourceJson = (JSONObject)resourcesJsonArray.get(1);
       String secondResourceBodyText = secondResourceJson.getString("body");
       responseText += "\n" + "Another answer is" + "\n" + secondResourceBodyText;
-    }
+    */
 
     inquiryResponseInfo.setResponseText(responseText);
     return inquiryResponseInfo;
