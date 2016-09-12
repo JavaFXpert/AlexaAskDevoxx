@@ -83,7 +83,8 @@ public class AskDevoxxSpeechlet implements Speechlet {
   private static final String SESSION_DIALOG_REQUEST_COUNTER = "dialog_request_counter";
 
   private static final String SLOT_COMMAND = "Command";
-  private static final String INQUIRY_ENDPOINT = "https://askdevoxx.cfapps.io/inquiry";
+  //private static final String INQUIRY_ENDPOINT = "https://askdevoxx.cfapps.io/inquiry";
+  private static final String INQUIRY_ENDPOINT = "https://askdevoxxwatson.mybluemix.net/inquiry";
 
   private static final String devoxxImageUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2EJZCArvYTVTThseT3TdN25cmPRanxrM2RDAgOI1GT0GEQLMVLA";
 
